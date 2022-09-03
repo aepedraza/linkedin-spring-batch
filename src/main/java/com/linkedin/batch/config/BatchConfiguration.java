@@ -31,7 +31,9 @@ public class BatchConfiguration {
     public Step packageItemStep() {
         return stepBuilderFactory.get("packageItemStep")
                 .tasklet((contribution, chunkContext) -> {
-                    System.out.println("The item has been packaged.");
+                    String item = chunkContext.getStepContext().getJobParameters().get("item").toString();
+                    String runDate = chunkContext.getStepContext().getJobParameters().get("run.date").toString();
+                    System.out.printf("The %s has been packaged at %s\n", item, runDate);
                     return RepeatStatus.FINISHED;
                 }).build();
     }
