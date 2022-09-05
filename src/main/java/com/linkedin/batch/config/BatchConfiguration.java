@@ -5,10 +5,13 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Random;
 
 @Configuration
 @EnableBatchProcessing
@@ -24,6 +27,8 @@ public class BatchConfiguration {
     public Job deliverPackageJob() {
         return jobBuilderFactory.get("deliverPackageJob")
                 .start(packageItemStep())
+                .next(driveToAddressStep())
+                .next(givePackageToCustomerStep())
                 .build();
     }
 
@@ -37,4 +42,36 @@ public class BatchConfiguration {
                     return RepeatStatus.FINISHED;
                 }).build();
     }
+
+    @Bean
+    public Step driveToAddressStep() {
+        return stepBuilderFactory.get("driveToAddressStep")
+                .tasklet((contribution, chunkContext) -> {
+
+                    if (gotLost(chunkContext)) {
+                        throw new RuntimeException("Got lost driving to the address");
+                    }
+
+
+                    System.out.println("Successfully arrived at the address");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    private Boolean gotLost(ChunkContext chunkContext) {
+        Double gotLostProbability = (Double) chunkContext.getStepContext().getJobParameters().get("gotLostProbability");
+        double gotLost = new Random().nextDouble();
+        return gotLost < gotLostProbability;
+    }
+
+    @Bean
+    public Step givePackageToCustomerStep() {
+        return stepBuilderFactory.get("givePackageToCustomerStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Given the package to the customer");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+
 }
