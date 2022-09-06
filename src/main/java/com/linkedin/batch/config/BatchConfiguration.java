@@ -27,8 +27,9 @@ public class BatchConfiguration {
     public Job deliverPackageJob() {
         return jobBuilderFactory.get("deliverPackageJob")
                 .start(packageItemStep())
-                .next(driveToAddressStep())
-                .next(givePackageToCustomerStep())
+                .next(driveToAddressStep()).on("FAILED").to(storePackageStep())
+                .from(driveToAddressStep()).on("*").to(givePackageToCustomerStep())
+                .end()
                 .build();
     }
 
@@ -65,6 +66,15 @@ public class BatchConfiguration {
     }
 
     @Bean
+    public Step storePackageStep() {
+        return stepBuilderFactory.get("storePackageStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Storing the package while the customer address is located.");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    @Bean
     public Step givePackageToCustomerStep() {
         return stepBuilderFactory.get("givePackageToCustomerStep")
                 .tasklet((contribution, chunkContext) -> {
@@ -72,6 +82,4 @@ public class BatchConfiguration {
                     return RepeatStatus.FINISHED;
                 }).build();
     }
-
-
 }
