@@ -1,5 +1,6 @@
 package com.linkedin.batch.config;
 
+import com.linkedin.batch.decider.CorrectItemDecider;
 import com.linkedin.batch.decider.DeliveryDecider;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -33,7 +34,12 @@ public class BatchConfiguration {
                     .on("FAILED").to(storePackageStep())
                 .from(driveToAddressStep())
                     .on("*").to(deliveryDecider())
-                        .on("PRESENT").to(givePackageToCustomerStep())
+                        .on("PRESENT")
+                            .to(givePackageToCustomerStep())
+                            .next(correctItemDecider())
+                                .on("CORRECT").to(thankCustomerStep())
+                            .from(correctItemDecider())
+                                .on("INCORRECT").to(giveRefundStep())
                     .from(deliveryDecider())
                         .on("NOT_PRESENT").to(leaveAtDoorStep())
                 .end()
@@ -103,4 +109,29 @@ public class BatchConfiguration {
                     return RepeatStatus.FINISHED;
                 }).build();
     }
+
+    @Bean
+    public JobExecutionDecider correctItemDecider() {
+        return new CorrectItemDecider();
+    }
+
+    @Bean
+    public Step thankCustomerStep() {
+        return stepBuilderFactory.get("thankCustomerStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Thank you for your purchase!");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    @Bean
+    public Step giveRefundStep() {
+        return stepBuilderFactory.get("giveRefundStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Sorry for the mistake, You will be refunded.");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+
 }

@@ -5,14 +5,15 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 
-import java.time.LocalDateTime;
+import java.util.Random;
 
-public class DeliveryDecider implements JobExecutionDecider {
+public class CorrectItemDecider implements JobExecutionDecider {
 
     @Override
     public FlowExecutionStatus decide(JobExecution jobExecution, StepExecution stepExecution) {
-        String result = LocalDateTime.now().getHour() > 12 ? "PRESENT" : "NOT_PRESENT";
-        System.out.println("Decider result is: " + result);
+        boolean isCorrect = new Random().nextDouble() < 0.7;
+        String result = isCorrect ? "CORRECT" : "INCORRECT";
+        System.out.println("Delivered item is " + result);
         return new FlowExecutionStatus(result);
     }
 }
