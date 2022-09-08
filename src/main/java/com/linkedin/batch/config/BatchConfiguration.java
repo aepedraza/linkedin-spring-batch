@@ -1,10 +1,12 @@
 package com.linkedin.batch.config;
 
+import com.linkedin.batch.decider.DeliveryDecider;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +29,13 @@ public class BatchConfiguration {
     public Job deliverPackageJob() {
         return jobBuilderFactory.get("deliverPackageJob")
                 .start(packageItemStep())
-                .next(driveToAddressStep()).on("FAILED").to(storePackageStep())
-                .from(driveToAddressStep()).on("*").to(givePackageToCustomerStep())
+                .next(driveToAddressStep())
+                    .on("FAILED").to(storePackageStep())
+                .from(driveToAddressStep())
+                    .on("*").to(deliveryDecider())
+                        .on("PRESENT").to(givePackageToCustomerStep())
+                    .from(deliveryDecider())
+                        .on("NOT_PRESENT").to(leaveAtDoorStep())
                 .end()
                 .build();
     }
@@ -70,6 +77,20 @@ public class BatchConfiguration {
         return stepBuilderFactory.get("storePackageStep")
                 .tasklet((contribution, chunkContext) -> {
                     System.out.println("Storing the package while the customer address is located.");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    @Bean
+    public JobExecutionDecider deliveryDecider() {
+        return new DeliveryDecider();
+    }
+
+    @Bean
+    public Step leaveAtDoorStep() {
+        return stepBuilderFactory.get("leaveAtDoorStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Leaving the package at te door.");
                     return RepeatStatus.FINISHED;
                 }).build();
     }
