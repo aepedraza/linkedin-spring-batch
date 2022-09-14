@@ -4,7 +4,6 @@ import com.linkedin.batch.decider.CorrectItemDecider;
 import com.linkedin.batch.decider.DeliveryDecider;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
@@ -17,8 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Random;
 
 @Configuration
-@EnableBatchProcessing
-public class BatchConfiguration {
+public class DeliverPackageJobConfiguration {
 
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
@@ -132,6 +130,4 @@ public class BatchConfiguration {
                     return RepeatStatus.FINISHED;
                 }).build();
     }
-
-
 }
