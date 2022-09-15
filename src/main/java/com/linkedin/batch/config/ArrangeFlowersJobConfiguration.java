@@ -6,6 +6,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -21,12 +22,13 @@ public class ArrangeFlowersJobConfiguration {
     private StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job prepareFlowers() {
+    public Job prepareFlowers(Flow deliveryFlow) {
         return this.jobBuilderFactory.get("prepareFlowersJob")
                 .start(selectFlowersStep())
-                .on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
+                    .on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
                 .from(selectFlowersStep())
-                .on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
+                    .on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
+                .from(arrangeFlowersStep()).on("*").to(deliveryFlow)
                 .end()
                 .build();
     }
