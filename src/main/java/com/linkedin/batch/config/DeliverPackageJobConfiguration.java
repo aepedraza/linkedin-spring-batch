@@ -26,10 +26,11 @@ public class DeliverPackageJobConfiguration {
     private StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job deliverPackageJob(Flow deliveryFlow) {
+    public Job deliverPackageJob(Flow deliveryFlow, Step nestedBillingJobStep) {
         return jobBuilderFactory.get("deliverPackageJob")
                 .start(packageItemStep())
                 .on("*").to(deliveryFlow)
+                .next(nestedBillingJobStep)
                 .end()
                 .build();
     }
@@ -43,5 +44,12 @@ public class DeliverPackageJobConfiguration {
                     System.out.printf("The %s has been packaged at %s\n", item, runDate);
                     return RepeatStatus.FINISHED;
                 }).build();
+    }
+
+    @Bean
+    public Step nestedBillingJobStep(Job billingJob) {
+        return stepBuilderFactory.get("nestedBillingJobStep")
+                .job(billingJob)
+                .build();
     }
 }
