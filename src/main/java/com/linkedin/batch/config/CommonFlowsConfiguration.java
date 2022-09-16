@@ -2,6 +2,7 @@ package com.linkedin.batch.config;
 
 import com.linkedin.batch.decider.CorrectItemDecider;
 import com.linkedin.batch.decider.DeliveryDecider;
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.job.builder.FlowBuilder;
@@ -100,6 +101,22 @@ public class CommonFlowsConfiguration {
         return stepBuilderFactory.get("giveRefundStep")
                 .tasklet((contribution, chunkContext) -> {
                     System.out.println("Sorry for the mistake, You will be refunded.");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    @Bean
+    public Flow billingFlow() {
+        return new FlowBuilder<SimpleFlow>("billingFlow")
+                .start(billingStep())
+                .build();
+    }
+
+    @Bean
+    public Step billingStep() {
+        return stepBuilderFactory.get("billingStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Sending billing invoice to customer");
                     return RepeatStatus.FINISHED;
                 }).build();
     }

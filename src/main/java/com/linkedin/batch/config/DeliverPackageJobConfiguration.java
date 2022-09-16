@@ -13,6 +13,8 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import java.util.Random;
 
@@ -26,11 +28,11 @@ public class DeliverPackageJobConfiguration {
     private StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job deliverPackageJob(Flow deliveryFlow, Step nestedBillingJobStep) {
+    public Job deliverPackageJob(Flow deliveryFlow, Flow billingFlow) {
         return jobBuilderFactory.get("deliverPackageJob")
                 .start(packageItemStep())
-                .on("*").to(deliveryFlow)
-                .next(nestedBillingJobStep)
+                .split(new SimpleAsyncTaskExecutor())
+                .add(deliveryFlow, billingFlow)
                 .end()
                 .build();
     }
@@ -44,12 +46,5 @@ public class DeliverPackageJobConfiguration {
                     System.out.printf("The %s has been packaged at %s\n", item, runDate);
                     return RepeatStatus.FINISHED;
                 }).build();
-    }
-
-    @Bean
-    public Step nestedBillingJobStep(Job billingJob) {
-        return stepBuilderFactory.get("nestedBillingJobStep")
-                .job(billingJob)
-                .build();
     }
 }
