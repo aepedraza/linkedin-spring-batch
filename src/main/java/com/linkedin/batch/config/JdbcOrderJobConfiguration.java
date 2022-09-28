@@ -8,13 +8,18 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
 
 import javax.sql.DataSource;
 
@@ -26,7 +31,11 @@ public class JdbcOrderJobConfiguration {
 
     // It is recommended to have ORDER BY to ensure order of result set, in case we need to restart/resume the job
     private static final String ORDER_SQL = String.join(" ", SELECT_CLAUSE, FROM_CLAUSE, "ORDER BY order_id");
+
     private static final int PAGE_CHUNK_SIZE = 10;
+
+    private static final String[] NAMES = new String[]{"orderId", "firstName", "lastName", "email", "cost", "itemId",
+            "itemName", "shipDate"};
 
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
@@ -56,10 +65,25 @@ public class JdbcOrderJobConfiguration {
         return stepBuilderFactory.get(stepName)
                 .<Order, Order>chunk(PAGE_CHUNK_SIZE)
                 .reader(reader)
-                .writer(items -> {
-                    System.out.printf("Received a list of  size: %d%n", items.size());
-                    items.forEach(System.out::println);
-                }).build();
+                .writer(csvItemWriter())
+                .build();
+    }
+
+    @Bean
+    public ItemWriter<Order> csvItemWriter() {
+        FlatFileItemWriter<Order> itemWriter = new FlatFileItemWriter<>();
+
+        itemWriter.setResource(new FileSystemResource("./data/shipped_orders_output.csv"));
+
+        DelimitedLineAggregator<Order> aggregator = new DelimitedLineAggregator<>();
+        aggregator.setDelimiter(",");
+
+        BeanWrapperFieldExtractor<Order> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(NAMES);
+        aggregator.setFieldExtractor(fieldExtractor);
+
+        itemWriter.setLineAggregator(aggregator);
+        return itemWriter;
     }
 
     @Bean
