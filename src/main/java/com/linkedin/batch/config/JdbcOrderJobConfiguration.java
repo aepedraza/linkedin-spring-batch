@@ -34,9 +34,6 @@ public class JdbcOrderJobConfiguration {
 
     private static final int PAGE_CHUNK_SIZE = 10;
 
-    private static final String[] NAMES = new String[]{"orderId", "firstName", "lastName", "email", "cost", "itemId",
-            "itemName", "shipDate"};
-
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
 
@@ -65,25 +62,11 @@ public class JdbcOrderJobConfiguration {
         return stepBuilderFactory.get(stepName)
                 .<Order, Order>chunk(PAGE_CHUNK_SIZE)
                 .reader(reader)
-                .writer(csvItemWriter())
+                .writer(items -> {
+                    System.out.printf("Received a list of  size: %d%n", items.size());
+                    items.forEach(System.out::println);
+                })
                 .build();
-    }
-
-    @Bean
-    public ItemWriter<Order> csvItemWriter() {
-        FlatFileItemWriter<Order> itemWriter = new FlatFileItemWriter<>();
-
-        itemWriter.setResource(new FileSystemResource("./data/shipped_orders_output.csv"));
-
-        DelimitedLineAggregator<Order> aggregator = new DelimitedLineAggregator<>();
-        aggregator.setDelimiter(",");
-
-        BeanWrapperFieldExtractor<Order> fieldExtractor = new BeanWrapperFieldExtractor<>();
-        fieldExtractor.setNames(NAMES);
-        aggregator.setFieldExtractor(fieldExtractor);
-
-        itemWriter.setLineAggregator(aggregator);
-        return itemWriter;
     }
 
     @Bean
