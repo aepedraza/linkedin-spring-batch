@@ -44,13 +44,13 @@ public class OrderJobConfiguration {
     public Step orderProcessingStep() {
         return stepBuilderFactory.get("orderProcessingStep")
                 .<Order, Order>chunk(3)
-                .reader(itemReader())
+                .reader(csvItemReader())
                 .writer(csvItemWriter())
                 .build();
     }
 
     @Bean
-    public ItemReader<Order> itemReader() {
+    public ItemReader<Order> csvItemReader() {
         FlatFileItemReader<Order> itemReader = new FlatFileItemReader<>();
         itemReader.setLinesToSkip(1); // skip headers
         itemReader.setResource(new FileSystemResource("../data/shipped_orders.csv"));
