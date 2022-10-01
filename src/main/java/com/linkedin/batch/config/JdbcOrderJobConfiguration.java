@@ -34,6 +34,11 @@ public class JdbcOrderJobConfiguration {
             + "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date) "
             + "VALUES(?,?,?,?,?,?,?,?)";
 
+    // Must match with the POJO fields names
+    public static String NAMED_PARAMETERS_INSERT_ORDER_SQL = "INSERT INTO "
+            + "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date) "
+            + "VALUES(:orderId, :firstName, :lastName, :email, :itemId, :itemName, :cost, :shipDate)";
+
     private static final int PAGE_CHUNK_SIZE = 10;
 
     @Autowired
@@ -57,14 +62,14 @@ public class JdbcOrderJobConfiguration {
 
     @Bean
     public Step jdbcOrderProcessingStep() {
-        return buildStep("jdbcOrderProcessingStep", jdbcItemReader());
+        return buildStep("jdbcOrderProcessingStep", jdbcItemReader(), preparedStatementWriter());
     }
 
-    private TaskletStep buildStep(String stepName, ItemReader<Order> reader) {
+    private TaskletStep buildStep(String stepName, ItemReader<Order> reader, ItemWriter<Order> writer) {
         return stepBuilderFactory.get(stepName)
                 .<Order, Order>chunk(PAGE_CHUNK_SIZE)
                 .reader(reader)
-                .writer(preparedStatementWriter())
+                .writer(writer)
                 .build();
     }
 
@@ -94,7 +99,7 @@ public class JdbcOrderJobConfiguration {
 
     @Bean
     public Step pagingJdbcOrderProcessingStep() throws Exception {
-        return buildStep("pagingJdbcOrderProcessingStep", pagingJdbcItemReader());
+        return buildStep("pagingJdbcOrderProcessingStep", pagingJdbcItemReader(), beanMappedItemWriter());
     }
 
     @Bean
@@ -119,5 +124,14 @@ public class JdbcOrderJobConfiguration {
 
         // Will construct appropriate paging query depending on the underlying database
         return factory.getObject();
+    }
+
+    @Bean
+    public ItemWriter<Order> beanMappedItemWriter() {
+        return new JdbcBatchItemWriterBuilder<Order>()
+                .dataSource(datasource)
+                .sql(NAMED_PARAMETERS_INSERT_ORDER_SQL)
+                .beanMapped()
+                .build();
     }
 }
