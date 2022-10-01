@@ -6,19 +6,12 @@ import java.util.Date;
 public class Order {
 
 	private Long orderId;
-
 	private String firstName;
-
 	private String lastName;
-
 	private String email;
-
 	private BigDecimal cost;
-
 	private String itemId;
-
 	private String itemName;
-
 	private Date shipDate;
 
 	public Long getOrderId() {

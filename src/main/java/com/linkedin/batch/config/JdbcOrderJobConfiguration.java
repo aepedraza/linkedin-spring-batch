@@ -2,6 +2,7 @@ package com.linkedin.batch.config;
 
 import com.linkedin.batch.domain.Order;
 import com.linkedin.batch.reader.OrderRowMapper;
+import com.linkedin.batch.writer.OrderItemPreparedStatementSetter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -10,16 +11,13 @@ import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
-import org.springframework.batch.item.file.FlatFileItemWriter;
-import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
-import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
 
 import javax.sql.DataSource;
 
@@ -31,6 +29,10 @@ public class JdbcOrderJobConfiguration {
 
     // It is recommended to have ORDER BY to ensure order of result set, in case we need to restart/resume the job
     private static final String ORDER_SQL = String.join(" ", SELECT_CLAUSE, FROM_CLAUSE, "ORDER BY order_id");
+
+    public static String PREPARED_STATEMENT_INSERT_ORDER_SQL = "INSERT INTO "
+            + "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date) "
+            + "VALUES(?,?,?,?,?,?,?,?)";
 
     private static final int PAGE_CHUNK_SIZE = 10;
 
@@ -62,10 +64,7 @@ public class JdbcOrderJobConfiguration {
         return stepBuilderFactory.get(stepName)
                 .<Order, Order>chunk(PAGE_CHUNK_SIZE)
                 .reader(reader)
-                .writer(items -> {
-                    System.out.printf("Received a list of  size: %d%n", items.size());
-                    items.forEach(System.out::println);
-                })
+                .writer(preparedStatementWriter())
                 .build();
     }
 
@@ -76,6 +75,15 @@ public class JdbcOrderJobConfiguration {
                 .name("jdbcCursorItemReader")
                 .sql(ORDER_SQL)
                 .rowMapper(new OrderRowMapper())
+                .build();
+    }
+
+    @Bean
+    public ItemWriter<Order> preparedStatementWriter() {
+        return new JdbcBatchItemWriterBuilder<Order>()
+                .dataSource(datasource)
+                .sql(PREPARED_STATEMENT_INSERT_ORDER_SQL)
+                .itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
                 .build();
     }
 
