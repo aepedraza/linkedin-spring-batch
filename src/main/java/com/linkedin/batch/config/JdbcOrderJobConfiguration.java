@@ -8,6 +8,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
@@ -15,6 +16,7 @@ import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilde
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
+import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -69,8 +71,16 @@ public class JdbcOrderJobConfiguration {
         return stepBuilderFactory.get(stepName)
                 .<Order, Order>chunk(PAGE_CHUNK_SIZE)
                 .reader(reader)
+                .processor(orderValidatingItemProcessor())
                 .writer(writer)
                 .build();
+    }
+
+    @Bean
+    public ItemProcessor<Order, Order> orderValidatingItemProcessor() {
+        BeanValidatingItemProcessor<Order> itemProcessor = new BeanValidatingItemProcessor<>();
+        itemProcessor.setFilter(true);
+        return itemProcessor;
     }
 
     @Bean
