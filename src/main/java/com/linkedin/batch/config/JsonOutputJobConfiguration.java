@@ -1,11 +1,14 @@
 package com.linkedin.batch.config;
 
 import com.linkedin.batch.domain.Order;
+import com.linkedin.batch.domain.TrackedOrder;
+import com.linkedin.batch.processor.TrackedOrderItemProcessor;
 import com.linkedin.batch.reader.OrderRowMapper;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
@@ -40,15 +43,22 @@ public class JsonOutputJobConfiguration {
     @Bean
     public Step dbToJsonStep(ItemReader<Order> jdbcItemReader) {
         return stepBuilderFactory.get("dbToJsonStep")
-                .<Order, Order>chunk(100)
+                .<Order, TrackedOrder>chunk(100)
                 .reader(jdbcItemReader)
+                .processor(trackedOrderItemProcessor())
                 .writer(jsonWriter())
                 .build();
 
     }
 
-    private ItemWriter<Order> jsonWriter() {
-        return new JsonFileItemWriterBuilder<Order>()
+    @Bean
+    public ItemProcessor<Order, TrackedOrder> trackedOrderItemProcessor() {
+        return new TrackedOrderItemProcessor();
+    }
+
+    @Bean
+    public ItemWriter<TrackedOrder> jsonWriter() {
+        return new JsonFileItemWriterBuilder<TrackedOrder>()
                 .name("jsonWriter")
                 .jsonObjectMarshaller(new JacksonJsonObjectMarshaller<>())
                 .resource(new FileSystemResource("./data/shipped_orders_output.json"))
