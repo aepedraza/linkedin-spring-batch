@@ -5,7 +5,7 @@ import org.springframework.beans.BeanUtils;
 public class TrackedOrder extends Order {
 
     private String trackingNumber;
-    private String freeShipping;
+    private boolean freeShipping;
 
     public TrackedOrder() {
     }
@@ -22,11 +22,11 @@ public class TrackedOrder extends Order {
         this.trackingNumber = trackingNumber;
     }
 
-    public String getFreeShipping() {
+    public boolean isFreeShipping() {
         return freeShipping;
     }
 
-    public void setFreeShipping(String freeShipping) {
+    public void setFreeShipping(boolean freeShipping) {
         this.freeShipping = freeShipping;
     }
 }
