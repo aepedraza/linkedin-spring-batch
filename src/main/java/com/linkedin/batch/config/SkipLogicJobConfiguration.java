@@ -43,7 +43,7 @@ public class SkipLogicJobConfiguration {
                 .processor(freeShippingProcessor)
                 .faultTolerant()
                 .skip(OrderProcessingException.class)
-                .skipLimit(5)
+                .skipLimit(5) // indicates skip limit for entire step
                 .listener(new CustomSkipListener())
                 .writer(jsonWriter)
                 .build();

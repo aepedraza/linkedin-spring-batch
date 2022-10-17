@@ -3,6 +3,7 @@ package com.linkedin.batch.config;
 import com.linkedin.batch.domain.Order;
 import com.linkedin.batch.domain.TrackedOrder;
 import com.linkedin.batch.exception.OrderProcessingException;
+import com.linkedin.batch.listener.CustomRetryListener;
 import com.linkedin.batch.listener.CustomSkipListener;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -41,6 +42,10 @@ public class RetryLogicJobConfiguration {
                 .<Order, TrackedOrder>chunk(10)
                 .reader(pagingJdbcItemReader)
                 .processor(freeShippingProcessor)
+                .faultTolerant()
+                .retry(OrderProcessingException.class)
+                .retryLimit(3) // indicates retries for item
+                .listener(new CustomRetryListener())
                 .writer(jsonWriter)
                 .build();
     }
