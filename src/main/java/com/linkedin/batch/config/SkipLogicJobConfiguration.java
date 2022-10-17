@@ -2,6 +2,8 @@ package com.linkedin.batch.config;
 
 import com.linkedin.batch.domain.Order;
 import com.linkedin.batch.domain.TrackedOrder;
+import com.linkedin.batch.exception.OrderProcessingException;
+import com.linkedin.batch.listener.CustomSkipListener;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -39,6 +41,10 @@ public class SkipLogicJobConfiguration {
                 .<Order, TrackedOrder>chunk(10)
                 .reader(pagingJdbcItemReader)
                 .processor(freeShippingProcessor)
+                .faultTolerant()
+                .skip(OrderProcessingException.class)
+                .skipLimit(5)
+                .listener(new CustomSkipListener())
                 .writer(jsonWriter)
                 .build();
     }
